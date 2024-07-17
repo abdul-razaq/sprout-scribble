@@ -1,15 +1,10 @@
-import Image from 'next/image';
+import { Button } from "@/components/ui/button";
 
-export default function Home() {
+export default async function Home() {
 	return (
 		<main className="flex items-center justify-center">
-			<h1>NEXT.JS</h1>
-			<Image
-				src={'/public/next.svg'}
-				height={100}
-				width={100}
-				alt="next-image"
-			/>
+			<h1>Home Page</h1>
+			<Button className="bg-purple-900 hover:bg-purple-400">Hello Shadcn</Button>
 		</main>
 	);
 }
