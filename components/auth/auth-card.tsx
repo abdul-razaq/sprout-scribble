@@ -11,11 +11,40 @@ import {
 import { Button } from '@/components/ui/button';
 import { signIn } from 'next-auth/react';
 import { FaGithub, FaGoogle } from 'react-icons/fa';
+import { useForm } from 'react-hook-form';
+import * as z from 'zod';
+import { loginSchema } from '@/types/auth/auth-schema';
+import { zodResolver } from '@hookform/resolvers/zod';
+import {
+	Form,
+	FormControl,
+	FormDescription,
+	FormField,
+	FormItem,
+	FormLabel,
+	FormMessage,
+} from '../ui/form';
+import { Input } from '../ui/input';
 
 export type AuthMode = 'register' | 'login' | 'forgot';
 
 export default function AuthCard() {
 	const [authMode, setAuthMode] = React.useState<AuthMode>('login');
+
+	const form = useForm<z.infer<typeof loginSchema>>({
+		mode: 'onBlur',
+		defaultValues: {
+			email: '',
+			password: '',
+		},
+		resolver: zodResolver(loginSchema),
+		reValidateMode: 'onBlur',
+		shouldFocusError: true,
+	});
+
+	function onSubmit(values: z.infer<typeof loginSchema>) {
+		console.log(values);
+	}
 
 	const title =
 		authMode === 'register'
@@ -26,9 +55,13 @@ export default function AuthCard() {
 
 	const button =
 		authMode === 'register' ? (
-			<Button variant="default">Register</Button>
+			<Button variant="default" type="submit" className="w-full">
+				Register
+			</Button>
 		) : (
-			<Button variant="default">Login</Button>
+			<Button variant="default" type="submit" className="w-full">
+				Login
+			</Button>
 		);
 
 	const footerLink =
@@ -65,7 +98,55 @@ export default function AuthCard() {
 			</CardHeader>
 
 			<CardContent>
-				<p>Input Form goes here</p>
+				<Form {...form}>
+					<form onSubmit={form.handleSubmit(onSubmit)} className="w-full">
+						<FormField
+							control={form.control}
+							name="email"
+							render={({ field }) => {
+								return (
+									<FormItem>
+										<FormLabel>Email</FormLabel>
+										<FormControl>
+											<Input
+												placeholder="abdulrazaq@gmail.com"
+												autoComplete="email"
+												{...field}
+											/>
+										</FormControl>
+										<FormDescription>
+											This is your email address
+										</FormDescription>
+										<FormMessage />
+									</FormItem>
+								);
+							}}
+						/>
+						<FormField
+							control={form.control}
+							name="password"
+							render={({ field }) => {
+								return (
+									<FormItem className="py-5">
+										<FormLabel>Password</FormLabel>
+										<FormControl>
+											<Input
+												placeholder="********"
+												autoComplete="current-password"
+												{...field}
+											/>
+										</FormControl>
+										<FormDescription>
+											This is your strong password
+										</FormDescription>
+										<FormMessage />
+									</FormItem>
+								);
+							}}
+						/>
+						<div className="w-full py-5">{button}</div>
+					</form>
+				</Form>
 				{authMode !== 'forgot' && (
 					<Button
 						variant="link"
@@ -78,7 +159,6 @@ export default function AuthCard() {
 			</CardContent>
 
 			<CardFooter className="flex flex-col items-stretch gap-6">
-				{button}
 				{authMode !== 'forgot' && <Socials />}
 				{footerLink}
 			</CardFooter>
