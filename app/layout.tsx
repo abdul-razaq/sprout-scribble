@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
-import Link from 'next/link';
+import Nav from '@/components/navigation/nav';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -12,27 +12,14 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
 	children,
-	profile,
 }: Readonly<{
 	children: React.ReactNode;
 	profile: React.ReactNode;
 }>) {
-	const isAdmin = false;
-
 	return (
 		<html lang="en">
 			<body className={`${inter.className} min-w-full min-h-full`}>
-				<nav className="text-2xl font-sans">
-					<ul className="bg-green-600 flex justify-between px-6 py-4 items-center leading-loose tracking-wide">
-						<li>
-							<Link href={'/'}>Home</Link>
-						</li>
-						<li>
-							<Link href={'/about'}>About</Link>
-						</li>
-					</ul>
-				</nav>
-				{isAdmin && profile}
+				<Nav />
 				{children}
 			</body>
 		</html>
