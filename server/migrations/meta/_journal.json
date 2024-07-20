@@ -15,6 +15,27 @@
       "when": 1721174336721,
       "tag": "0001_careless_captain_stacy",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1721426069400,
+      "tag": "0002_unique_hitman",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1721512182832,
+      "tag": "0003_vengeful_earthquake",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1721514541717,
+      "tag": "0004_needy_mikhail_rasputin",
+      "breakpoints": true
     }
   ]
 }

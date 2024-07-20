@@ -13,7 +13,7 @@ import { signIn } from 'next-auth/react';
 import { FaGithub, FaGoogle } from 'react-icons/fa';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
-import { loginSchema } from '@/types/auth/auth-schema';
+import { authSchema } from '@/types/auth/auth-schema';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
 	Form,
@@ -25,25 +25,40 @@ import {
 	FormMessage,
 } from '../ui/form';
 import { Input } from '../ui/input';
+import { useAction } from 'next-safe-action/hooks';
+import { emailAuth } from '@/server/actions/auth';
+import { cn } from '@/lib/utils';
 
 export type AuthMode = 'register' | 'login' | 'forgot';
 
 export default function AuthCard() {
 	const [authMode, setAuthMode] = React.useState<AuthMode>('login');
+	const [error, setError] = React.useState('');
 
-	const form = useForm<z.infer<typeof loginSchema>>({
+	const form = useForm<z.infer<typeof authSchema>>({
 		mode: 'onBlur',
 		defaultValues: {
+			username: '',
 			email: '',
 			password: '',
+			code: '',
 		},
-		resolver: zodResolver(loginSchema),
+		resolver: zodResolver(authSchema),
 		reValidateMode: 'onBlur',
 		shouldFocusError: true,
 	});
 
-	function onSubmit(values: z.infer<typeof loginSchema>) {
-		console.log(values);
+	const { execute, result, isExecuting } = useAction(emailAuth, {
+		onError(data) {},
+		onSuccess(data) {
+			if (data) {
+				console.log(data);
+			}
+		},
+	});
+
+	function onSubmit(values: z.infer<typeof authSchema>) {
+		execute(values);
 	}
 
 	const title =
@@ -55,11 +70,19 @@ export default function AuthCard() {
 
 	const button =
 		authMode === 'register' ? (
-			<Button variant="default" type="submit" className="w-full">
+			<Button
+				variant="default"
+				type="submit"
+				className={cn('w-full', isExecuting ? 'animate-pulse' : '')}
+			>
 				Register
 			</Button>
 		) : (
-			<Button variant="default" type="submit" className="w-full">
+			<Button
+				variant="default"
+				type="submit"
+				className={cn('w-full', isExecuting ? 'animate-pulse' : '')}
+			>
 				Login
 			</Button>
 		);
@@ -100,6 +123,28 @@ export default function AuthCard() {
 			<CardContent>
 				<Form {...form}>
 					<form onSubmit={form.handleSubmit(onSubmit)} className="w-full">
+						{authMode === 'register' && (
+							<FormField
+								control={form.control}
+								name="username"
+								render={({ field }) => {
+									return (
+										<FormItem className="pb-5">
+											<FormLabel>Username</FormLabel>
+											<FormControl>
+												<Input
+													placeholder="antigen"
+													autoComplete="username"
+													{...field}
+												/>
+											</FormControl>
+											<FormDescription>This is your username</FormDescription>
+											<FormMessage />
+										</FormItem>
+									);
+								}}
+							/>
+						)}
 						<FormField
 							control={form.control}
 							name="email"
