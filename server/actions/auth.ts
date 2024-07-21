@@ -7,12 +7,11 @@ import { eq } from 'drizzle-orm';
 import { users } from '../schema';
 import bcrypt from 'bcrypt';
 import { generateEmailVerificationToken } from './tokens';
+import sendVerificationEmail from './email';
 
 export const emailAuth = actionClient
 	.schema(authSchema)
 	.action(async ({ parsedInput: { email, password, code, username } }) => {
-		console.log(email, password, 'code', username);
-
 		const existingUser = await db.query.users.findFirst({
 			where: eq(users.email, email),
 		});
@@ -20,13 +19,16 @@ export const emailAuth = actionClient
 		if (username) {
 			// We are in register mode
 			if (existingUser && existingUser.emailVerified) {
-				return { error: 'email already in use' };
+				return { error: 'email address already in use' };
 			}
 			if (existingUser && !existingUser.emailVerified) {
 				const verificationToken = await generateEmailVerificationToken(email);
-				// TODO: send email verification token to the user email.
+				await sendVerificationEmail(
+					verificationToken![0].email,
+					verificationToken![0].token,
+				);
 				return {
-					email: 'Verification token successfully sent to email address',
+					success: 'Verification token successfully sent to email address',
 				};
 			}
 
@@ -39,9 +41,12 @@ export const emailAuth = actionClient
 			});
 
 			const verificationToken = await generateEmailVerificationToken(email);
-			// TODO: send email verification token to the user email.
+			await sendVerificationEmail(
+				verificationToken![0].email,
+				verificationToken![0].token,
+			);
 			return {
-				email: 'Verification token successfully sent to email address',
+				success: 'Verification token successfully sent to email address',
 			};
 		} else {
 			// we are in login mode

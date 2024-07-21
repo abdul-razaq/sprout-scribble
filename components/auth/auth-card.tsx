@@ -28,12 +28,14 @@ import { Input } from '../ui/input';
 import { useAction } from 'next-safe-action/hooks';
 import { emailAuth } from '@/server/actions/auth';
 import { cn } from '@/lib/utils';
+import Toast from './Toast';
 
 export type AuthMode = 'register' | 'login' | 'forgot';
 
 export default function AuthCard() {
 	const [authMode, setAuthMode] = React.useState<AuthMode>('login');
 	const [error, setError] = React.useState('');
+	const [success, setSuccess] = React.useState('');
 
 	const form = useForm<z.infer<typeof authSchema>>({
 		mode: 'onBlur',
@@ -49,10 +51,14 @@ export default function AuthCard() {
 	});
 
 	const { execute, result, isExecuting } = useAction(emailAuth, {
-		onError(data) {},
+		onError(data) {
+			if (data.error) {
+				setError('error');
+			}
+		},
 		onSuccess(data) {
-			if (data) {
-				console.log(data);
+			if (data.data?.success) {
+				setSuccess(data.data?.success);
 			}
 		},
 	});
@@ -201,6 +207,9 @@ export default function AuthCard() {
 						Forgot password?
 					</Button>
 				)}
+
+				{success && <Toast type="success" message={success} />}
+				{error && <Toast type="error" message={error} />}
 			</CardContent>
 
 			<CardFooter className="flex flex-col items-stretch gap-6">
