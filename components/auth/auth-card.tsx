@@ -29,6 +29,7 @@ import { useAction } from 'next-safe-action/hooks';
 import { emailAuth } from '@/server/actions/auth';
 import { cn } from '@/lib/utils';
 import Toast from './Toast';
+import { useRouter } from 'next/navigation';
 
 export type AuthMode = 'register' | 'login' | 'forgot';
 
@@ -52,17 +53,16 @@ export default function AuthCard() {
 
 	const { execute, result, isExecuting } = useAction(emailAuth, {
 		onError(data) {
-			if (data.error) {
-				setError('error');
+			if (data) {
+				setError(
+					data.error.serverError ||
+						data.error.validationErrors ||
+						data.error.fetchError,
+				);
 			}
 		},
 		onSuccess(data) {
-			if (data.data?.error) {
-				setError(data.data?.error);
-			}
-			if (data.data?.success) {
-				setSuccess(data.data?.success);
-			}
+			console.log(data);
 		},
 	});
 
@@ -70,38 +70,19 @@ export default function AuthCard() {
 		execute(values);
 	}
 
-	const title =
-		authMode === 'register'
-			? 'Create an account'
-			: authMode === 'login'
-				? 'Welcome back'
-				: 'Forgot your password';
+	function switchAuthMode(mode: AuthMode) {
+		setAuthMode(mode);
+		form.reset();
+	}
 
-	const button =
-		authMode === 'register' ? (
-			<Button
-				variant="default"
-				type="submit"
-				className={cn('w-full', isExecuting ? 'animate-pulse' : '')}
-			>
-				Register
-			</Button>
-		) : (
-			<Button
-				variant="default"
-				type="submit"
-				className={cn('w-full', isExecuting ? 'animate-pulse' : '')}
-			>
-				Login
-			</Button>
-		);
+	const title = authMode === 'register' ? 'Create an account' : 'Welcome back';
 
 	const footerLink =
 		authMode === 'register' ? (
 			<Button
 				variant="link"
 				className="text-sm"
-				onClick={() => setAuthMode('login')}
+				onClick={() => switchAuthMode('login')}
 			>
 				Already have an account?
 			</Button>
@@ -109,7 +90,7 @@ export default function AuthCard() {
 			<Button
 				variant="link"
 				className="text-sm"
-				onClick={() => setAuthMode('register')}
+				onClick={() => switchAuthMode('register')}
 			>
 				Create a new account
 			</Button>
@@ -123,6 +104,8 @@ export default function AuthCard() {
 			</Button>
 		);
 
+	const router = useRouter();
+
 	return (
 		<Card>
 			<CardHeader>
@@ -131,7 +114,12 @@ export default function AuthCard() {
 
 			<CardContent>
 				<Form {...form}>
-					<form onSubmit={form.handleSubmit(onSubmit)} className="w-full">
+					<form
+						onSubmit={form.handleSubmit(onSubmit, errors =>
+							console.log(errors),
+						)}
+						className="w-full"
+					>
 						{authMode === 'register' && (
 							<FormField
 								control={form.control}
@@ -198,14 +186,22 @@ export default function AuthCard() {
 								);
 							}}
 						/>
-						<div className="w-full py-5">{button}</div>
+						<div className="w-full py-5">
+							<Button
+								variant="default"
+								type="submit"
+								className={cn('w-full', isExecuting ? 'animate-pulse' : '')}
+							>
+								{authMode === 'register' ? 'Register' : 'Login'}
+							</Button>
+						</div>
 					</form>
 				</Form>
 				{authMode !== 'forgot' && (
 					<Button
 						variant="link"
 						className="text-sm"
-						onClick={() => setAuthMode('forgot')}
+						onClick={() => router.push('/auth/forgot-password')}
 					>
 						Forgot password?
 					</Button>

@@ -1,15 +1,20 @@
 'use server';
 
 import { actionClient } from '@/lib/safe-action';
-import { authSchema } from '@/types/auth/auth-schema';
+import { authSchema, passwordResetSchema } from '@/types/auth/auth-schema';
 import db from '..';
 import { eq } from 'drizzle-orm';
 import { users } from '../schema';
 import bcrypt from 'bcrypt';
-import { generateEmailVerificationToken } from './tokens';
-import sendVerificationEmail from './email';
+import * as z from 'zod';
+import {
+	generateEmailVerificationToken,
+	generatePasswordResetToken,
+} from './tokens';
+import { sendPasswordResetEmail, sendVerificationEmail } from './email';
 import { signIn } from '../auth';
 import { AuthError } from 'next-auth';
+import { updatePasswordSchema } from '@/types/auth/update-password-scheme';
 
 export const emailAuth = actionClient
 	.schema(authSchema)
@@ -23,8 +28,47 @@ export const emailAuth = actionClient
 		} else {
 			handleLogin(existingUser, email, password);
 		}
-		return { success: 'success' };
 	});
+
+export const passwordReset = actionClient
+	.schema(passwordResetSchema)
+	.action(async ({ parsedInput: { email } }) => {
+		const user = await db.query.users.findFirst({
+			where: eq(users.email, email),
+		});
+		if (!user) {
+			return { error: 'user associated with email address does not exist' };
+		}
+		await sendPasswordResetTokenToUser(email);
+	});
+
+export const updatePassword = actionClient
+	.schema(updatePasswordSchema)
+	.bindArgsSchemas<[user: z.ZodAny]>([z.any()])
+	.action(
+		async ({
+			parsedInput: { password, confirmPassword },
+			bindArgsParsedInputs: [user],
+		}) => {
+			const hashedPassword = await bcrypt.hash(password, 10);
+			await db
+				.update(users)
+				.set({
+					password: hashedPassword,
+				})
+				.where(eq(users.email, user.email));
+			return { success: 'password updated successfully!' };
+		},
+	);
+
+async function sendPasswordResetTokenToUser(email: string) {
+	const token = await generatePasswordResetToken(email);
+	if (!token) {
+		return { error: 'no password reset token' };
+	}
+	await sendPasswordResetEmail(token[0].email, token[0].token);
+	return { success: 'password reset token successfully sent!' };
+}
 
 async function handleRegister(
 	user: any,
@@ -37,7 +81,7 @@ async function handleRegister(
 			return { error: 'email address already in use' };
 		}
 		if (user && !user.emailVerified) {
-			await sendVerificationEmailToUser(user);
+			await sendVerificationEmailToUser(email);
 		}
 
 		const hashedPassword = await bcrypt.hash(password, 10);
@@ -48,7 +92,9 @@ async function handleRegister(
 			password: hashedPassword,
 		});
 
-		await sendVerificationEmailToUser(user?.email);
+		await sendVerificationEmailToUser(email);
+
+		return { success: 'success' };
 	} catch (error) {
 		throw error;
 	}
@@ -60,7 +106,7 @@ async function handleLogin(user: any, email: string, password: string) {
 			return { error: 'login credentials not correct' };
 		}
 		if (user && !user.emailVerified) {
-			await sendVerificationEmailToUser(user);
+			await sendVerificationEmailToUser(email);
 		}
 
 		await signIn('credentials', {
@@ -68,6 +114,8 @@ async function handleLogin(user: any, email: string, password: string) {
 			password,
 			redirectTo: '/',
 		});
+
+		return { success: 'success' };
 	} catch (error) {
 		if (error instanceof AuthError) {
 			switch (error.type) {
@@ -85,8 +133,8 @@ async function handleLogin(user: any, email: string, password: string) {
 	}
 }
 
-async function sendVerificationEmailToUser(user: any) {
-	const verificationToken = await generateEmailVerificationToken(user.email);
+async function sendVerificationEmailToUser(email: string) {
+	const verificationToken = await generateEmailVerificationToken(email);
 	await sendVerificationEmail(
 		verificationToken![0].email,
 		verificationToken![0].token,
