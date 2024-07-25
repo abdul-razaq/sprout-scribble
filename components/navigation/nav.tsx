@@ -1,19 +1,22 @@
-import { auth } from '@/server/auth';
+'use client';
+
 import UserButton from './user-button';
 import Image from 'next/image';
+import { Session, User } from 'next-auth';
+import Link from 'next/link';
 
-export default async function Nav() {
-	const session = await auth();
-
+export default function Nav({ user }: { user?: User }) {
 	return (
 		<header className="p-4">
 			<nav>
 				<ul className="flex justify-between items-center">
 					<li>
-						<Image src="./logo.svg" alt="Logo" height={150} width={150} />
+						<Link href={'/'}>
+							<Image src="./logo.svg" alt="Logo" height={150} width={150} />
+						</Link>
 					</li>
 					<li>
-						<UserButton user={session?.user} />
+						<UserButton user={user} />
 					</li>
 				</ul>
 			</nav>
